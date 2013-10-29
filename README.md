@@ -10,6 +10,9 @@ Append the following requests at the end of the URL to return current info.
 - `?height` returns river height
 - `?salt` returns salinity
 
+# Exmample
+- http://popsnorkle.com/usgs/?height
+
 # Helpful Links
 - http://waterdata.usgs.gov/nwis/inventory?agency_code=USGS&site_no=07374000
 - http://maps.waterdata.usgs.gov/mapper/
