@@ -32,4 +32,11 @@ if (isset($_GET['salt'])) {
 	echo $value;
 }
 
+if (empty($_GET)) {
+	echo "<a href=\"?height\">Height</a><br />";
+	echo "<a href=\"?temp\">Temperature</a><br />";
+	echo "<a href=\"?ph\">PH</a><br />";
+	echo "<a href=\"?salt\">Salinity</a><br />";
+}
+
 ?>
