@@ -4,6 +4,7 @@ Mississippi-River-USGS-Info
 Real time USGS info on the Mississippi River. This includes PH, Salinity, Height, and Temperature. The information is gathered from the USGS Baton Rouge site. 
 
 # Usage
+Append the following requests at the end of the URL to return current info.
 - `?temp` returns temperature
 - `?ph` returns PH
 - `?height` returns river height
