@@ -11,7 +11,7 @@ Append the following requests at the end of the URL to return current info.
 - `?salt` returns salinity
 
 # Example
-- http://popsnorkle.com/usgs/?height
+- http://popsnorkle.com/usgs/
 
 # Helpful Links
 - http://waterdata.usgs.gov/nwis/inventory?agency_code=USGS&site_no=07374000
