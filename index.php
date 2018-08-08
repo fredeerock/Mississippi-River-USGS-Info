@@ -1,5 +1,3 @@
-<!-- rsync -avz --progress /Applications/AMPPS/www/usgs popsn0@popsnorkle.com:public_html -->
-
 <?php
 
 if (isset($_GET['temp'])) {
