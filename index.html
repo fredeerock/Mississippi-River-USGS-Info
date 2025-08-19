@@ -54,13 +54,15 @@
           <li><a href="?dis">Discharge</a></li>
           <li><a href="?cond">Conductance</a></li>
         </ul>
-        <p class="muted">Tip: Open any link with <code>&raw=1</code> to show only the numeric value (handy for embeds).</p>
+        <p class="muted">Tip: Open any link with <code>&raw=1</code> to respond with only the numeric value (no HTML), just like the original PHP.</p>
       `;
     }
 
     function renderValueOnly(val) {
-      document.title = val + ' · USGS value';
-      app.innerHTML = `<div class="value-only">${val}</div>`;
+      // Exact PHP-like behavior: body becomes only the number (no HTML wrappers)
+      document.title = (val ?? '') + ' · USGS value';
+      document.body.innerHTML = '';
+      document.body.textContent = val ?? '';
     }
 
     function renderLoading() {
@@ -102,12 +104,14 @@
       if (!key) { renderHome(); return; }
 
       try {
-        renderLoading();
         const code = PARAMS[key];
         if (!code) throw new Error('Unknown parameter');
-        const val = await fetchWithFallback({ site: SITE_ID, code });
 
         const raw = qs.has('raw');
+        if (!raw) renderLoading();
+
+        const val = await fetchWithFallback({ site: SITE_ID, code });
+
         if (raw) {
           renderValueOnly(val ?? '');
         } else {
@@ -120,7 +124,12 @@
           `;
         }
       } catch (err) {
-        renderError('Failed to load value: ' + err.message);
+        if (qs.has('raw')) {
+          // Even in error, mimic raw output as empty
+          renderValueOnly('');
+        } else {
+          renderError('Failed to load value: ' + err.message);
+        }
       }
     })();
   </script>
