@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>USGS Gauge Quick Values</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    body { margin: 0; padding: 2rem; }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+    a { color: #1a73e8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    ul { line-height: 1.9; }
+    .muted { color: #666; font-size: .9rem; margin-top: 1rem; }
+    .value-only { font: 700 28px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .error { color: #b00020; }
+    .loading { opacity: .8; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="app"></div>
+  </div>
+
+  <script>
+    // --- Config ---
+    const SITE_ID = '07374000'; // your USGS site
+    const PARAMS = {
+      temp:  '00010', // Temperature, water
+      height:'00065', // Gage height
+      ph:    '00400', // pH
+      salt:  '00480', // Salinity
+      dis:   '00060', // Discharge
+      cond:  '00095', // Specific conductance
+    };
+
+    const FALLBACK_ISO = '2013-10-27T05:00'; // matches your PHP fallback
+
+    // Read the first known key present in the querystring
+    const qs = new URLSearchParams(location.search);
+    const key = Object.keys(PARAMS).find(k => qs.has(k));
+
+    const app = document.getElementById('app');
+
+    function renderHome() {
+      app.innerHTML = `
+        <h1>USGS Gauge Quick Values (Site ${SITE_ID})</h1>
+        <ul>
+          <li><a href="?height">Height</a></li>
+          <li><a href="?temp">Temperature</a></li>
+          <li><a href="?ph">pH</a></li>
+          <li><a href="?salt">Salinity</a></li>
+          <li><a href="?dis">Discharge</a></li>
+          <li><a href="?cond">Conductance</a></li>
+        </ul>
+        <p class="muted">Tip: Open any link with <code>&raw=1</code> to show only the numeric value (handy for embeds).</p>
+      `;
+    }
+
+    function renderValueOnly(val) {
+      document.title = val + ' · USGS value';
+      app.innerHTML = `<div class="value-only">${val}</div>`;
+    }
+
+    function renderLoading() {
+      app.classList.add('loading');
+      app.textContent = 'Loading…';
+    }
+
+    function renderError(msg) {
+      app.classList.remove('loading');
+      app.innerHTML = `<div class="error">${msg}</div>`;
+    }
+
+    async function fetchValue({ site, code }) {
+      const base = 'https://waterservices.usgs.gov/nwis/iv/';
+      const url = `${base}?format=json&sites=${encodeURIComponent(site)}&parameterCd=${encodeURIComponent(code)}`;
+
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const first = json?.value?.timeSeries?.[0]?.values?.[0]?.value?.[0]?.value;
+      return first ?? null;
+    }
+
+    async function fetchWithFallback({ site, code }) {
+      let v = await fetchValue({ site, code });
+      // Original PHP treated -999999 as missing; match that behavior
+      if (v === null || String(v) === '-999999') {
+        const base = 'https://waterservices.usgs.gov/nwis/iv/';
+        const fallbackUrl = `${base}?format=json&sites=${encodeURIComponent(site)}&startDT=${encodeURIComponent(FALLBACK_ISO)}&endDT=${encodeURIComponent(FALLBACK_ISO)}&parameterCd=${encodeURIComponent(code)}`;
+        const res = await fetch(fallbackUrl, { mode: 'cors' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        v = json?.value?.timeSeries?.[0]?.values?.[0]?.value?.[0]?.value ?? null;
+      }
+      return v;
+    }
+
+    (async function main() {
+      if (!key) { renderHome(); return; }
+
+      try {
+        renderLoading();
+        const code = PARAMS[key];
+        if (!code) throw new Error('Unknown parameter');
+        const val = await fetchWithFallback({ site: SITE_ID, code });
+
+        const raw = qs.has('raw');
+        if (raw) {
+          renderValueOnly(val ?? '');
+        } else {
+          app.classList.remove('loading');
+          app.innerHTML = `
+            <h1>${key.toUpperCase()} · Site ${SITE_ID}</h1>
+            <p><strong>Value:</strong> <span class="value-only">${val ?? '—'}</span></p>
+            <p class="muted">Query key: <code>${key}</code>, USGS parameter code: <code>${code}</code></p>
+            <p><a href="./">Back</a> · <a href="?${key}&raw=1">Show raw value</a></p>
+          `;
+        }
+      } catch (err) {
+        renderError('Failed to load value: ' + err.message);
+      }
+    })();
+  </script>
+</body>
+</html>
